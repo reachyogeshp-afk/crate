@@ -1181,7 +1181,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-            assert validateTableOIDs(tableOidSupplier.peek());
+            validateTableOIDs(tableOidSupplier.peek());
 
             return new Metadata(
                 clusterUUID,
@@ -1200,7 +1200,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
-        private boolean validateTableOIDs(int tableOidSupplierValue) {
+        private void validateTableOIDs(int tableOidSupplierValue) {
+            // do not validate if table oids are not assigned yet i.e. during upgrades or upgraded tables are assigned OID_UNASSIGNED
+            if (tableOidSupplierValue == OID_UNASSIGNED) {
+                return;
+            }
             BitSet relationOIDs = new BitSet(tableOidSupplierValue + 1);
             for (var schemaMetadata : schemas.values()) {
                 for (var relationMetadata : schemaMetadata.relations().values()) {
@@ -1223,7 +1227,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     relationOIDs.set(relationOID);
                 }
             }
-            return true;
         }
 
         private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
